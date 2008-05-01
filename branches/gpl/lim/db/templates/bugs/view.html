@@ -1,0 +1,25 @@
+{% extends "base.html" %} 
+
+{% block main %}
+<div id="main">
+
+
+<div>
+Bug num#: {{ bug.bug_num }}
+</div>
+<div>
+{{ bug.title }}
+</div>
+<div>
+{{ bug.state.owner }}
+</div>
+<div>
+{{ bug.last_modified }}
+</div>
+<div>
+{{ bug.description|safe }}
+</div>
+
+</div>
+
+{% endblock %}
