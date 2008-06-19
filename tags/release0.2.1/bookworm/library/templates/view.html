@@ -1,0 +1,212 @@
+{% extends "base.html" %} 
+{% spaceless %}
+{% block title %}{{ document.title }}{% if document.author %} by {{ document.author }} {% endif %}{% endblock title %}
+{% endspaceless %}
+
+{% block head %}
+<script type="text/javascript">
+     function getFullPath() {
+       var u = '{% url library.views.view_chapter_frame document.safe_title,document.key,chapter.idref %}' + location.hash;
+       return u;
+     }
+</script>
+{% spaceless %}
+    <!-- AB Meta -->
+    <meta name="dc:type" content="book" ></meta>
+    <meta name="dc:title" content="{{ document.title }}" ></meta>
+    <meta name="dc:creator" content="{{ document.author }}" ></meta>
+    
+    <!-- Dublin Core -->
+    <link rel="schema.dc" href="http://purl.org/dc/elements/1.1/"></link>
+    <link rel="schema.dcterms" href="http://purl.org/dc/terms/"></link>
+    
+    <meta name="dc.format" scheme="dcterms.IMT" content="text/html"></meta>
+    <meta name="dc.type" scheme="dcterms.DCMIType" content="Text" ></meta>
+    <meta name="dc.title" content="{{ document.title }}" ></meta>
+    <meta name="dc.creator" content="{{ document.author }}" ></meta>
+
+    <link rel="stylesheet" href="/static/document.css"></link>
+{% endspaceless %}
+{% endblock head %}
+
+{% block header %}
+<a href="{% url library.views.view document.safe_title,document.key %}"><span class="title">{{ document.title }}</span></a> 
+{% endblock header %}
+
+{% block leftnav %}
+
+{% if document.authors %}
+<h2 class="authors">by 
+{% for a in document.authors %}
+  {{ a }}{% if not forloop.last %}, {% endif %}
+{% endfor %}
+</h2>
+{% endif %}
+
+<ol class="nav">
+  <li class="first">
+  {% if chapter %}
+  <a href="{% url library.views.view document.safe_title,document.key %}">Book information</a>
+  {% else %}
+  Book information
+  {% endif %}
+  </li>
+  
+{% for c in document.get_top_level_toc %}
+   {% ifequal c.order chapter.order %}
+   <li class="current {% if c.find_children %} has_children {% endif %}"> {{ c.title }} 
+
+   {% if c.find_children %}
+      <ol>
+      {% for sub in c.find_children %}
+        <li><a href="{% url library.views.view_chapter document.safe_title,document.key,sub.href %}">{{ sub.title }}</a></li>
+      {% endfor %}
+      </ol>
+   {% endif %}
+   </li>
+   {% else %}
+     <li><a href="{% url library.views.view_chapter document.safe_title,document.key,c.href %}">{{ c.title }}</a></li>
+   {% endifequal %}
+{% endfor %}
+</ol>
+{% endblock leftnav %}
+
+{% block main %}
+
+<div id="content" style="height:100%">
+
+{% if chapter %}
+
+  {% if common.prefs.use_iframe %}
+  <script type="text/javascript">
+    getFullPath();
+  </script>
+  <!-- Show iframe -->
+  <div style="width:100%">
+<!--   <iframe style="padding-bottom: 2em; margin-bottom:2em; border-bottom:1px dotted grey" id="frame" frameborder="0" marginheight="20" marginwidth="0" align="left" width="100%" name="content" src="{% url library.views.view_chapter_frame document.safe_title,document.key,chapter.idref %}" > -->
+   <iframe style="padding-bottom: 2em; margin-bottom:2em; border-bottom:1px dotted grey" id="frame" frameborder="0" marginheight="20" marginwidth="0" align="left" width="100%" name="content" src="{% url library.views.view_chapter_frame document.safe_title,document.key,chapter.idref %}">
+     <p>Your browser doesn't support iframes, but that's okay: <a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe=no">disable iframes</a></p>
+   </iframe>
+   <script type="text/javascript">
+     function resizeIframe() {
+        var height = document.documentElement.clientHeight;
+        height -= document.getElementById('frame').offsetTop;
+        height -= 200;
+        document.getElementById('frame').style.height = height +"px";
+     };
+     document.getElementById('frame').onload = resizeIframe;
+     window.onresize = resizeIframe;
+     document.getElementById('frame').src = getFullPath();
+
+   </script>
+    
+   <p>
+     To disable the book's custom stylesheets and display only using the styles in Bookworm, you can
+   <a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe=no">disable iframes</a>.</p>
+  </div>
+ {% else %}
+      <!-- Skip iframe -->
+      {% if document.has_stylesheets %}
+
+         <!-- Show iframe note -->
+         {% if common.prefs.show_iframe_note %}
+            <p class="note">
+              Note: This ebook came bundled with its own stylesheets.  To use them you will need to <a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe=yes">enable iframes</a>.
+              [<a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe_note=no">hide this note</a>]
+            </p>
+         {% endif %}
+
+      {% endif %} <!-- end stylesheet check -->
+
+   {% include "includes/chapter_next_previous.html" %}
+  
+      {{ chapter.render|safe }}
+  
+   {% include "includes/chapter_next_previous.html" %}
+
+
+   {% endif %}
+{% else %}
+
+ <!-- Title page -->
+
+   <h1 class="book_title">{{ document.title }}</h1>
+   <h2 class="book_author">{% for a in document.authors %}{{ a }}{% if not forloop.last %}, {% endif %}{% endfor %}</h2>
+
+   <p>
+     To read this book online, select any of the sections to the left.
+   </p>
+
+   <table class="meta">
+     <thead>
+       <tr>
+         <th class="table_header" colspan="2">Book information</th>
+       </tr>
+     </thead>     
+     <tbody>
+       {% if document.get_publisher %}
+       <tr>
+         <th>Publisher</th>
+         <td>{{ document.get_publisher }}</td>
+       </tr>
+       {% endif %}
+
+       {% if document.get_language %}
+       <tr>
+         <th>Language</th>
+         <td>{{ document.get_language }}</td>
+       </tr>
+       {% endif %}
+
+       <tr>
+         <th>Date added to library</th>
+         <td>{{ document.created_time|date:"l, F Y" }}</td>
+       </tr>
+       <tr>
+         <th>Number of sections</th>
+         <td>{{ toc|length }}</td>
+       </tr>
+
+       {% if document.get_subjects %}
+       <tr>
+         <th>Subjects</th>
+         <td>{% for s in document.get_subjects %}{{ s }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+       </tr>
+       {% endif %}
+
+       {% if document.get_rights %}
+       <tr>
+         <th>Rights</th>
+         <td>{{ document.get_rights }}</td>
+       </tr>
+       {% endif %}
+
+
+       <tr>
+         <th>Download entire book</th>
+         <td><a href="{% url library.views.download_epub document.safe_title,document.key %}">epub format</a></td>
+       </tr>
+       {% if document.has_stylesheets %}
+       <tr>
+         <th>Read this book with its own styles and fonts?</th>
+         <td>
+           {% if common.prefs.use_iframe %}
+           Yes, show book's styles in a scrolling window 
+           <br/>(<a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe=no">change this</a>)
+           {% else %}
+           No, view without styles 
+           <br/>(<a href="{% url library.views.view_chapter document.safe_title,document.key,chapter.idref %}?iframe=yes">change this)</a>
+           {% endif %}
+         </td>
+       </tr>
+       {% endif %}
+
+     </tbody>
+   </table>
+         
+{% endif %}
+
+</div>
+
+
+{% endblock main %}
