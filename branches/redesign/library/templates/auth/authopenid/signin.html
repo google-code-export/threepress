@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+
+{% block head %}
+
+<link rel="stylesheet" type="text/css" href="/static/auth.css" ></link>
+<link rel="stylesheet" href="/static/home.css"></link>
+
+
+{% endblock head %}
+
+{% block leftnav %}
+  {% include "includes/news.html" %}
+  {% include "includes/about_development.html" %}
+{% endblock %}
+
+{% block main %}
+<div id="bw-content">
+
+  <h1 id="bw-logo-image-header"><img src="/static/bookworm-logo.png" alt="Bookworm" id="bw-logo-image" /></h1>
+
+  <div id="bw-text-intro">  
+  <p class="bw-tagline">A free platform for reading ePub books online. <a href="{% url library.views.about %}">Learn more</a>.</p>
+  <p class="bw-tagline">New to Bookworm? <a href="{% url django_authopenid.views.signup %}" name="register">Register</a>.
+  </p>
+
+  <p>&ldquo;The perfect tool for taking your own book collection anywhere that has an internet connection&rdquo; &mdash; <a href="http://www.jedisaber.com/ebooks/Readers.asp">ePub Reader Software reviews</a></p>
+ 
+  <p>&ldquo;Perfect. It works great.&rdquo; &mdash; <a href="http://getsatisfaction.com/oreilly/topics/iphone_missing_manual_you_could_read_on_the_iphone#reply_561347">O&rsquo;Reilly ebook purchaser</a></p>
+ 
+
+
+  </div>
+
+  <p id="bw-service-disclaimer">Use of the library requires that you be logged in.  Once logged in you'll have
+  access to books that you have uploaded to the service.</p>
+
+  {% if msg %}
+    <p class="bw-message">{{ msg }}</p>
+  {% endif %}
+  {% if form1.errors %}
+    <p class="bw-message">
+      {% if form1.username.errors %} 
+        <span class="bw-error">{{ form1.username.errors|join:", " }}</span>
+      {% endif %}
+      {% if form1.password.errors %} 
+        <span class="bw-error">{{ form1.password.errors|join:", " }}</span>
+      {% endif %}
+      <span>You may have created your account with an OpenID, in which case you won't need your password but should
+      enter your OpenID URL below.</span>
+    </p>
+  {% endif %}
+
+  <div class="login">
+    <form name="fauth" action="{{ action }}" method="post" id="bw-username-form">
+      {{ form1.next }}
+      <fieldset>
+        <legend>Sign in using a local Bookworm account</legend>
+        <label for="id_username">Username</label>{{ form1.username }}
+	<br/>
+        <label id="bw-username-password-label" for="id_password">Password</label>{{ form1.password }}
+        <input type="submit" name="blogin" value="Sign in" id="bw-mb-username-submit"/>
+        <a id="bw-lost-password" href="{{ sendpw_url }}">Lost your password?</a>
+      </fieldset>	
+    </form>
+
+    <form name="fopenid" action="{{ action }}" method="post" id="bw-openid-form">
+      {{ form2.next }}
+      <fieldset>
+        <legend>Sign in using your OpenID</legend>
+        <label for="id_openid_ul"><img src="/static/openid-logo.png" alt="OpenID" /></label>{{ form2.openid_url }}
+        <input name="bsignin" type="submit" value="Sign in with OpenID" id="bw-mb-openid-submit"/> 
+      </fieldset>
+    </form>	
+  </div>	
+
+</div>
+
+{% endblock %}
+
