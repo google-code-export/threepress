@@ -1,0 +1,26 @@
+{% extends "shell.html" %}
+
+{% block center %}
+
+    <table id="bw-shell-table">
+      <tr><td valign="top">
+        <div id="bw-leftnav">
+          {% block leftnav %}{% endblock leftnav %}
+        </div>
+      </td>
+      <td valign="top" id="bw-shell-table-content">
+        <!-- Content -->
+        <div id="bw-main">
+          {% block main %}{% endblock main %}
+          {% block content %}{% endblock content %}
+        </div>
+      </td>
+      <td valign="top">
+        <div id="bw-rightnav">
+          {% block rightnav %}{% endblock rightnav %}
+        </div>
+      </td>
+      </tr>
+    </table>
+
+{% endblock center %}
