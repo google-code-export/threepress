@@ -733,18 +733,25 @@ class TestViews(DjangoTestCase):
 
     def test_home_unprotected(self):
         '''Index should now be accessible'''
+        try:
+            self.client.logout()
+        except:
+            pass
         response = self.client.get('/')
         self.assertTemplateUsed(response, 'public.html')
+        self._login()
 
     def test_login(self):
         self._login()
         response = self.client.get('/')
+        self.assertRedirects(response, '/library/')
+        response = self.client.get('/library/')
         self.assertTemplateUsed(response, 'index.html')
         self.assertContains(response, 'testuser')
 
     def test_upload(self):
         response = self._upload('Pride-and-Prejudice_Jane-Austen.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)
 
@@ -765,7 +772,7 @@ class TestViews(DjangoTestCase):
 
     def test_upload_with_nested_urls(self):
         response = self._upload('Bible.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)        
         id = '1'
@@ -792,7 +799,7 @@ class TestViews(DjangoTestCase):
     def test_upload_with_images(self):
         ''' Image uploads should work whether or not their path is specified'''
         response = self._upload('alice-fromAdobe.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)        
         response = self.client.get('/view/alice/1/images/alice01a.gif')
@@ -803,7 +810,7 @@ class TestViews(DjangoTestCase):
 
     def test_upload_with_pathless_image(self):
         response = self._upload(u'天.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)        
 
@@ -825,11 +832,11 @@ class TestViews(DjangoTestCase):
         # Load enough books to exceed our settings pagination label
         for a in range(1, (settings.DEFAULT_NUM_RESULTS * 2) ):
             response = self._upload('Cory_Doctorow_-_Little_Brother.epub')
-            self.assertRedirects(response, '/', 
+            self.assertRedirects(response, '/library/', 
                                  status_code=302, 
                                  target_status_code=200)        
 
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Page 1 of 2')
         self.assertContains(response, 'date added to your library')
         self.assertContains(response, 'descending')
@@ -853,11 +860,11 @@ class TestViews(DjangoTestCase):
         # Load enough books to exceed our settings pagination label
         for a in range(1, (settings.DEFAULT_NUM_RESULTS * 2) ):
             response = self._upload('Cory_Doctorow_-_Little_Brother.epub')
-            self.assertRedirects(response, '/', 
+            self.assertRedirects(response, '/library/', 
                                  status_code=302, 
                                  target_status_code=200)        
         
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Page 1 of 2')
 
         response = self.client.get('/page/1/order/title/dir/asc')
@@ -882,32 +889,32 @@ class TestViews(DjangoTestCase):
 
     def test_upload_with_utf8(self):
         response = self._upload('The-Adventures-of-Sherlock-Holmes_Arthur-Conan-Doyle.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)        
 
         # Make sure it's in the list
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Sherlock')
 
     def test_delete_with_utf8(self):
         response = self._upload('The-Adventures-of-Sherlock-Holmes_Arthur-Conan-Doyle.epub')
         # Make sure it's in the list
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Sherlock')
 
         response = self.client.post('/delete/', { 'title':'The+Adventures+of+Sherlock+Holmes',
                                        'key':'1'})
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)   
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertNotContains(response, 'Sherlock')
 
 
     def test_upload_with_entities(self):
         response = self._upload('html-entities.epub')
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)   
 
@@ -935,7 +942,7 @@ class TestViews(DjangoTestCase):
         self._upload('Pride-and-Prejudice_Jane-Austen.epub')        
         response = self.client.post('/delete/', { 'title':'Pride+and+Prejudice',
                                        'key':'1'})
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)   
         
@@ -957,10 +964,10 @@ class TestViews(DjangoTestCase):
                                                           'email':'registertest@example.com',
                                                           'password1':'registertest',
                                                           'password2':'registertest'})
-        self.assertRedirects(response, '/', 
+        self.assertRedirects(response, '/library/', 
                              status_code=302, 
                              target_status_code=200)   
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertTemplateUsed(response, 'index.html')
         self.assertContains(response, 'registertest', status_code=200)
 
@@ -987,7 +994,7 @@ class TestViews(DjangoTestCase):
         self.assertRedirects(response, '/account/profile/?msg=Password+changed.', 
                              status_code=302, 
                              target_status_code=200)   
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'registertest', status_code=200)
         self.client.logout()
         self.assertTrue(self.client.login(username='registertest', password='registertest2'))        
@@ -1112,6 +1119,7 @@ class TestViews(DjangoTestCase):
 
         # The user should be able to see their own book
         response = self.client.get('/view/a/%s/' % document.id)
+        print response.content
         self.assertContains(response, 'Pride')
 
         self.client.logout()
@@ -1165,14 +1173,14 @@ class TestViews(DjangoTestCase):
         self._upload(name)
         document = EpubArchive.objects.filter(name=name)[0]
 
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Single Listing', 1)
 
         response = self.client.get('/view/a/%s/' % document.id)
         self.assertEquals(response.status_code, 200)
 
         # Make sure the title only appears once
-        response = self.client.get('/')
+        response = self.client.get('/library/')
         self.assertContains(response, 'Single Listing', 1)
 
     def test_download_utf8_title(self):
@@ -1219,27 +1227,27 @@ class TestTwill(DjangoTestCase):
         app = AdminMediaHandler(WSGIHandler())
         add_wsgi_intercept("127.0.0.1", 9876, lambda: app)
         self.b = get_browser()
-        #if 'threepress' in gethostname():
-        #    self.url = 'http://bookworm.threepress.org/'
-        #else:
-        #    self.url = 'http://127.0.0.1:9876'
         self.url = 'http://127.0.0.1:9876'
-        #self.url = 'http://localhost:8000'
 
     def test_home(self):
         go(self.url)
         url('/')
+        find('Bookworm')
 
-    def test_register(self):
+    def test_library(self):
+        go(self.url)
+        url('/')
         self._register()
+        find('Library')
+        go('/account/signout/')
 
     def test_upload(self):
         self._register()
-        #self._login()
         go(self.url)
         formfile("upload", "epub", _get_filepath('Pride-and-Prejudice_Jane-Austen.epub'))
         submit("submit-upload")
         find('Pride and Prejudice')
+        go('/account/signout/')
 
     def _login(self):
         go('/account/signin/')

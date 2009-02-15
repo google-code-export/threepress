@@ -12,3 +12,4 @@ TEMPLATE_DIRS = (
 TEMPLATE_DIRS += TEMPLATE_DIRS_BASE
 
 MOBILE = True
+CACHE_BACKEND = 'file:///tmp/bookworm/django_cache_mobile'

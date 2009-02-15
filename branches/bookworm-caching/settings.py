@@ -160,7 +160,7 @@ MOBILE = False
 FORCE_SCRIPT_NAME = ''
 
 # Domain which to redirect requests that are coming from a mobile device
-MOBILE_HOST = 'http://m.threepress.org/'
+MOBILE_HOST = 'http://m.bookworm.oreilly.com/'
 
 # Set up logging
 LOG_DIR = '%s/log/' % ROOT_PATH
@@ -171,6 +171,8 @@ TEST_DATABASE_CHARSET = 'utf8'
 SEARCH_ROOT = os.path.join(ROOT_PATH, 'search', 'dbs')
 
 CACHE_BACKEND = 'file:///tmp/bookworm/django_cache'
+CACHE_MIDDLEWARE_ANONYMOUS_ONLY = True
+CACHE_TEMPLATE_TIMEOUT = 60 * 60 * 1
 
 XSLT_DIR = os.path.join(ROOT_PATH, 'library', 'xsl')
 DTBOOK2XHTML = os.path.join(XSLT_DIR, 'dtbook2xhtml.xsl')

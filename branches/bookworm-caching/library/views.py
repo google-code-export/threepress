@@ -26,9 +26,10 @@ from bookworm.library.google_books.search import Request
 
 log = logging.getLogger('library.views')
 
-@cache_page(60 * 30)
-@vary_on_cookie
+@never_cache
 def index(request):
+    '''Public home page.  This should be heavily cached (in fact eventually should be
+    served only by the web server.)'''
     if request.user.is_authenticated():
         return HttpResponseRedirect(reverse('library'))
     # If this is a mobile user, skip the public page
@@ -36,11 +37,15 @@ def index(request):
         return signin(request)
     return direct_to_template(request, "public.html", {})
 
-@cache_control(private=True)
+
+@login_required
+@never_cache
 def library(request,
           page_number=settings.DEFAULT_START_PAGE, 
           order=settings.DEFAULT_ORDER_FIELD,
           dir=settings.DEFAULT_ORDER_DIRECTION):
+    '''Users's library listing.  The page itself should not be cached although 
+    individual items in the library should be cached at the model level.'''
     if not dir in settings.VALID_ORDER_DIRECTIONS:
         raise Exception("Direction %s was not in our list of known ordering directions" % dir)
     if not order in settings.VALID_ORDER_FIELDS:
@@ -85,7 +90,9 @@ def library(request,
                                              }
                               )
 
-@cache_control(private=True)
+# We can't cache this at the page level because the user may be
+# going to the last-read page rather than the document start
+@never_cache
 def view(request, title, key, first=False, resume=False):
     '''If we view just a document, we want to either see our last chapter,
     or see the first item in the <opf:spine>, as required by the epub specification.'''
@@ -105,7 +112,8 @@ def view(request, title, key, first=False, resume=False):
     else:
         last_chapter_read = None
         uprofile = None
-    log.debug("First: %s" % first)
+
+    log.info("First: %s" % first)
 
     if resume and last_chapter_read is not None:
         chapter = last_chapter_read
@@ -124,7 +132,9 @@ def view(request, title, key, first=False, resume=False):
             return HttpResponseRedirect(reverse('view_chapter', kwargs={'title':document.safe_title(), 'key': document.id, 'chapter_id':chapter.filename}))
     return view_chapter(request, title, key, None, chapter=chapter)
 
-@cache_control(private=True)
+
+# Not cacheable either because it may be a different user
+@never_cache
 def view_chapter(request, title, key, chapter_id, chapter=None, google_books=None, message=None):
     if chapter is not None:
         chapter_id = chapter.id
@@ -237,7 +247,7 @@ def delete(request):
             document = _get_document(request, title, key)
         _delete_document(request, document)
 
-    return HttpResponseRedirect('/')
+    return HttpResponseRedirect(reverse('library'))
 
 def register(request):
     '''Register a new user on Bookworm'''
@@ -256,7 +266,7 @@ def register(request):
     return direct_to_template(request, "auth/register.html", { 'form' : form })
 
 @login_required
-@cache_control(private=True)
+@never_cache
 def profile(request):
     uprofile = RequestContext(request).get('profile')
     
@@ -333,7 +343,7 @@ def upload(request, title=None, key=None):
     are provided then this is a reload of an existing document, which should retain
     the same ID.'''
     document = None 
-    successful_redirect = reverse('index')
+    successful_redirect = reverse('library')
 
     if request.method == 'POST':
         form = EpubValidateForm(request.POST, request.FILES)
@@ -495,12 +505,10 @@ def _chapter_next_previous(document, chapter, dir='next'):
 
 def _delete_document(request, document):
     # Delete the chapters of the book
-    # Actually this should occur in the indexing phase since these chapters are needed for
-    # full deletion
-    #toc = HTMLFile.objects.filter(archive=document)
-    #if toc:
-    #    for t in toc:
-    #        t.delete()
+    toc = HTMLFile.objects.filter(archive=document)
+    if toc:
+        for t in toc:
+            t.delete()
 
     # Delete all the stylesheets in the book
     css = StylesheetFile.objects.filter(archive=document)
@@ -514,7 +522,7 @@ def _delete_document(request, document):
         for i in images:
             i.delete()
 
-    # Delete the book itself (here we will only be setting a flag)
+    # Delete the book itself
     document.delete()
 
 def _get_document(request, title, key, override_owner=False, nonce=None):
