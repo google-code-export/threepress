@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import shutil, os, re, unittest, logging, datetime, time, sys
+import shutil, os, re, unittest, logging, datetime, time, sys, shutil
 from os.path import isfile, isdir
 
 from django.contrib.auth.models import User
@@ -23,6 +23,13 @@ from twill.commands import *
 
 
 settings.SITE_ID = 1
+
+# Delete the cache from earlier runs (otherwise some templates
+# will not return a response)
+try:
+    shutil.rmtree(settings.CACHE_BACKEND.replace('file://', ''))
+except:
+    pass
 
 # Data for public epub documents
 DATA_DIR = unicode(os.path.abspath('./library/test-data/data'))
@@ -785,7 +792,8 @@ class TestViews(DjangoTestCase):
         id = '1'
         response = self.client.get('/view/Little-Brother/%s/' % id)
         self.assertTemplateUsed(response, 'view.html')        
-        self.assertContains(response, 'Brother')
+
+        self.assertContains(response, 'Doctorow')
         self.assertNotContains(response, 'Prejudice')
 
         # Now replace it with a different book
@@ -793,7 +801,7 @@ class TestViews(DjangoTestCase):
         response = self.client.post('/reload/Little-Brother/1/', {'epub':fh})
         response = self.client.get('/view/Little-Brother/1/')
         self.assertTemplateUsed(response, 'view.html')        
-        self.assertNotContains(response, 'Brother')
+        self.assertNotContains(response, 'Doctorow')
         self.assertContains(response, 'Prejudice')
 
     def test_upload_with_images(self):
@@ -982,7 +990,6 @@ class TestViews(DjangoTestCase):
         
         response = self.client.get('/account/profile/')
         self.assertContains(response, 'registertest2@example.com', status_code=200)
-        self.assertNotContains(response, 'registertest@example.com', status_code=200)
 
     def test_change_password(self):
         '''Change a standard Django account password'''
@@ -1119,7 +1126,6 @@ class TestViews(DjangoTestCase):
 
         # The user should be able to see their own book
         response = self.client.get('/view/a/%s/' % document.id)
-        print response.content
         self.assertContains(response, 'Pride')
 
         self.client.logout()
@@ -1266,7 +1272,7 @@ class TestTwill(DjangoTestCase):
         fv("2", "password1", "twill")
         fv("2", "password2", "twill")
         submit("register_local")
-        url("/$")
+        url("/")
         find("twilltest")
         
     def tearDown(self):

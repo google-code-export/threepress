@@ -177,6 +177,7 @@ CACHE_TEMPLATE_TIMEOUT = 60 * 60 * 1
 XSLT_DIR = os.path.join(ROOT_PATH, 'library', 'xsl')
 DTBOOK2XHTML = os.path.join(XSLT_DIR, 'dtbook2xhtml.xsl')
 
+DATE_FORMAT = "l, N j Y"
 LIBRARYTHING_KEY = ''
 
 # Access time, filename/function#line-number message

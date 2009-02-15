@@ -898,11 +898,11 @@ class SystemInfo():
 
     def get_total_books(self):
         self._total_books = EpubArchive.objects.count()
-        return self._total_books
+        return int(round(self._total_books, -2))
 
     def get_total_users(self):
         self._total_users = User.objects.count()
-        return self._total_users
+        return int(round(self._total_users, -2))
 
     def increment_total_books(self):
         t = self.get_total_books()

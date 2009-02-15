@@ -13,3 +13,4 @@ TEMPLATE_DIRS += TEMPLATE_DIRS_BASE
 
 MOBILE = True
 CACHE_BACKEND = 'file:///tmp/bookworm/django_cache_mobile'
+DATE_FORMAT = "M j y"
