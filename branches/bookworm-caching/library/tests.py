@@ -728,6 +728,19 @@ class TestModels(unittest.TestCase):
                                                   filename='chapter-1.html').count(), 1)
 
 
+    def test_ignore_srcless_images(self):
+        '''Don't complain if the source includes an image that's missing a @src (wtf)'''
+        f = HTMLFile()
+        f._clean_xhtml(etree.fromstring('<img src="foo.jpg" />'))
+        f._clean_xhtml(etree.fromstring('<img alt="I have no src" />'))
+        
+    def test_dc_description(self):
+        '''Retrieve dc description field'''
+        document = self.create_document('dc-description.epub')
+        document.explode()
+        self.assertEquals(document.get_description(),
+                          'This is a description')
+        
     def create_document(self, document, identifier=''):
         epub = MockEpubArchive(name=document)
         epub.identifier = identifier
@@ -1277,6 +1290,11 @@ class TestViews(DjangoTestCase):
         response = self.client.get('/view/a/1/chapter-1.html')
         self.assertTemplateUsed(response, 'view.html')
 
+    def test_dc_description(self):
+        '''Retrieve dc description field'''
+        document = self._upload('dc-description.epub')
+        response = self.client.get('/metadata/a/1/')
+        self.assertContains(response, 'This is a description')
 
     def _login(self):
         self.assertTrue(self.client.login(username='testuser', password='testuser'))
