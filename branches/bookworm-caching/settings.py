@@ -112,7 +112,6 @@ ROOT_URLCONF = 'urls'
 
 ROOT_PATH = os.path.dirname(__file__)
 
-
 TEMPLATE_DIRS = (
     '%s/library/templates/auth' % ROOT_PATH,    
     '%s/library/templates' % ROOT_PATH,
