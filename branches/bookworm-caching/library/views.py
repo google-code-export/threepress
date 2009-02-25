@@ -126,7 +126,7 @@ def view(request, title, key, first=False, resume=False):
             # We got some kind of catastrophic error while trying to 
             # parse this document
             message = 'There was a problem reading the metadata for this document.'
-            return view_chapter(request, title, key, None, chapter=chapter, message=message)
+            return view_chapter(request, title, key, None, message=message)
         if chapter is None:
             log.error('Could not find an item with the id of %s' % first_item)
             raise Http404
@@ -462,8 +462,8 @@ def upload(request, title=None, key=None):
                     d = resp.read()
                     if d:
                         try:
-                            from epub import util
-                            epubcheck_response =  util.xml_from_string(d)
+                            from epub import toc
+                            epubcheck_response =  toc.xml_from_string(d)
                         except Exception, e2:
                             log.error('Got an error when trying to XML-ify the epubecheck response; ignoring: %s' % e2)
                 
