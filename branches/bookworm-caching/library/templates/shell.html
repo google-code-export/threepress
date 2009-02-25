@@ -49,6 +49,7 @@
       </div>
    </div>
 
+    {% endcache %}
       <div id="bw-upload-box" style="display:none">
         <form action="{% url upload %}" method="post" enctype="multipart/form-data" name="upload">
            <h3>Add a book:</h3> {{ upload_form.epub }}
@@ -87,7 +88,6 @@
       </td></tr>
     </table>
 
-    {% endcache %}
 
     {% block center %}
 
