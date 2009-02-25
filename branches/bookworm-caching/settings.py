@@ -190,6 +190,12 @@ log = logging.getLogger('')
 log.setLevel(logging.INFO)
 log.addHandler(handler)
 
+# If set, the templates will load jQuery locally instead of from Google
+OFFLINE = False
+
+# Google Analytics key
+ANALYTICS_KEY = 'UA-162955-4'
+
 try:
     from local import *
 except:
