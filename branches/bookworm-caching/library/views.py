@@ -113,16 +113,20 @@ def view(request, title, key, first=False, resume=False):
         last_chapter_read = None
         uprofile = None
 
-    log.info("First: %s" % first)
-
     if resume and last_chapter_read is not None:
         chapter = last_chapter_read
     elif not first and uprofile and uprofile.open_to_last_chapter and last_chapter_read:
         chapter = last_chapter_read
     else:
-        toc = document.get_toc()
-        first_item = toc.first_item()
-        chapter = get_file_by_item(first_item, document)
+        try:
+            toc = document.get_toc()
+            first_item = toc.first_item()
+            chapter = get_file_by_item(first_item, document)
+        except InvalidEpubException:
+            # We got some kind of catastrophic error while trying to 
+            # parse this document
+            message = 'There was a problem reading the metadata for this document.'
+            return view_chapter(request, title, key, None, chapter=chapter, message=message)
         if chapter is None:
             log.error('Could not find an item with the id of %s' % first_item)
             raise Http404
