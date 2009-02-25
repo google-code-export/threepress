@@ -6,6 +6,7 @@ from os.path import isfile, isdir
 from django.contrib.auth.models import User
 from django.test import TestCase as DjangoTestCase
 from django.conf import settings
+from django.http import HttpResponseNotFound
 
 from bookworm.search import epubindexer, index
 from bookworm.library.models import *
@@ -709,6 +710,24 @@ class TestModels(unittest.TestCase):
         document = self.create_document(filename)
         document.explode()
 
+    def test_allow_body_as_classname(self):
+        '''Was erroneously changing all CSS classnames '.body' to '.div'''
+        css = 'foo.body { color: black; } body { color: white; }'
+        epub = MockEpubArchive(name='css')
+        out = epub.parse_stylesheet(css) 
+        self.assertTrue('#bw-book-content foo.body' in out)
+        self.assertTrue('#bw-book-content div' in out)
+        self.assertTrue('#bw-book-content body' not in out)
+
+
+    def test_allow_duplicate_itemref(self):
+        '''Don't create duplicate resource files if the OPF file happens to declare them multiple times'''
+        document = self.create_document('duplicate-itemref.epub')
+        document.explode()
+        self.assertEquals(HTMLFile.objects.filter(archive=document,
+                                                  filename='chapter-1.html').count(), 1)
+
+
     def create_document(self, document, identifier=''):
         epub = MockEpubArchive(name=document)
         epub.identifier = identifier
@@ -789,8 +808,7 @@ class TestViews(DjangoTestCase):
     def test_reload(self):
         '''Test the ability to reload an existing book'''
         response = self._upload('Cory_Doctorow_-_Little_Brother.epub')
-        id = '1'
-        response = self.client.get('/view/Little-Brother/%s/' % id)
+        response = self.client.get('/view/Little-Brother/1/')
         self.assertTemplateUsed(response, 'view.html')        
 
         self.assertContains(response, 'Doctorow')
@@ -799,10 +817,43 @@ class TestViews(DjangoTestCase):
         # Now replace it with a different book
         fh = _get_filehandle('Pride-and-Prejudice_Jane-Austen.epub')
         response = self.client.post('/reload/Little-Brother/1/', {'epub':fh})
+
+        self.assertTrue(type(response) != HttpResponseNotFound)
         response = self.client.get('/view/Little-Brother/1/')
         self.assertTemplateUsed(response, 'view.html')        
         self.assertNotContains(response, 'Doctorow')
         self.assertContains(response, 'Prejudice')
+
+        response = self.client.get('/metadata/test/1/')
+        self.assertContains(response, 'Reload this book')
+
+        # Don't allow this if the book is public 
+        # todo allow it if the book is public and the logged-in
+        # user is an owner
+        epub = EpubArchive.objects.get(id=1)
+        epub.is_public = True
+        epub.save()
+
+        response = self.client.get('/metadata/test/1/')
+        self.assertNotContains(response, 'Reload this book')        
+
+    def test_no_reload_if_not_owner(self):
+        '''Don't allow reloading of a book if you don't own it'''
+        response = self._upload('Cory_Doctorow_-_Little_Brother.epub')
+        response = self.client.get('/view/Little-Brother/1/')
+        self.assertTemplateUsed(response, 'view.html')        
+
+        self.client.logout()
+        response = self.client.post('/account/signup/', { 'username':'reloadtest',
+                                                          'email':'reloadtest@example.com',
+                                                          'password1':'reloadtest',
+                                                          'password2':'reloadtest'})
+        
+        fh = _get_filehandle('Pride-and-Prejudice_Jane-Austen.epub')
+        response = self.client.post('/reload/Little-Brother/1/', {'epub':fh})
+        self.assertTrue(type(response) == HttpResponseNotFound)
+
+        
 
     def test_upload_with_images(self):
         ''' Image uploads should work whether or not their path is specified'''
@@ -1212,6 +1263,20 @@ class TestViews(DjangoTestCase):
         '''Give a helpful message if the container is broken'''
         response = self._upload(u'invalid-no-namespaced-container.epub')
         self.assertContains(response, 'Check that your META-INF/container.xml file is correct')
+
+
+    def test_duplicate_filerefs(self):
+        response = self._upload(u'duplicate-itemref.epub')
+        archive = EpubArchive.objects.get(id=1)
+        HTMLFile.objects.create(archive=archive, filename='chapter-1.html')
+
+        # Now there should be two; verify
+        self.assertEquals(2, HTMLFile.objects.filter(archive=archive, filename='chapter-1.html').count())
+        
+        # Now make sure we can still read it anyway
+        response = self.client.get('/view/a/1/chapter-1.html')
+        self.assertTemplateUsed(response, 'view.html')
+
 
     def _login(self):
         self.assertTrue(self.client.login(username='testuser', password='testuser'))

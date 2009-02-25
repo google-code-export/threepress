@@ -19,7 +19,7 @@ from django.views.decorators.vary import vary_on_headers, vary_on_cookie
 from django_authopenid.views import signin
 
 from bookworm.library.epub import InvalidEpubException
-from bookworm.library.models import EpubArchive, HTMLFile, StylesheetFile, ImageFile, SystemInfo, get_file_by_item, order_fields, DRMEpubException
+from bookworm.library.models import EpubArchive, HTMLFile, StylesheetFile, ImageFile, SystemInfo, get_file_by_item, order_fields, DRMEpubException, UserArchive
 from bookworm.library.forms import EpubValidateForm, ProfileForm
 from bookworm.library.epub import constants as epub_constants
 from bookworm.library.google_books.search import Request
@@ -143,7 +143,11 @@ def view_chapter(request, title, key, chapter_id, chapter=None, google_books=Non
     document = _get_document(request, title, key)
 
     if chapter is None:
-        chapter = get_object_or_404(HTMLFile, archive=document, filename=chapter_id)
+        # Legacy objects may have more than one dupliate representation
+        h =  HTMLFile.objects.filter(archive=document, filename=chapter_id)
+        if h.count() == 0:
+            raise Http404
+        chapter = h[0]
 
     stylesheets = StylesheetFile.objects.filter(archive=document)
     next = _chapter_next_previous(document, chapter, 'next')
@@ -341,7 +345,7 @@ def profile_delete(request):
 def upload(request, title=None, key=None):
     '''Uploads a new document and stores it in the database.  If 'title' and 'key'
     are provided then this is a reload of an existing document, which should retain
-    the same ID.'''
+    the same ID.  The user must be an existing owner to reload a book.'''
     document = None 
     successful_redirect = reverse('library')
 
@@ -362,6 +366,9 @@ def upload(request, title=None, key=None):
                 log.debug("Reloading existing document: '%s'" % document_name) 
                 try:
                     document = EpubArchive.objects.get(id__exact=key)
+                    user_archive = UserArchive.objects.filter(user=request.user, archive=document)
+                    if user_archive.count() == 0:
+                        raise Http404
 
                     # Save off some metadata about it
                     is_public = document.is_public

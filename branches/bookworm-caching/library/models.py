@@ -506,7 +506,9 @@ class EpubArchive(BookwormModel):
         for rule in css.cssRules:
             try:
                 for selector in rule._selectorList:
-                    if 'body' in selector.selectorText:
+                    # Change body rules but not if someone has specified it as a classname (there's
+                    # probably a cleaner way to do this)
+                    if 'body' in selector.selectorText and not '.body' in selector.selectorText:
                         # Replace the body tag with a generic div, so the rules
                         # apply even though we've stripped out <body>
                         selector.selectorText = selector.selectorText.replace('body', 'div')
@@ -556,8 +558,15 @@ class EpubArchive(BookwormModel):
 
         pages = []
 
+        idrefs_already_processed = set()
+
         for ref in refs:
             idref = ref.get('idref')
+            if idref in idrefs_already_processed:
+                continue
+
+            idrefs_already_processed.add(idref)
+                
             if item_map.has_key(idref):
                 href = item_map[idref]
                 filename = '%s%s' % (content_path, href)
