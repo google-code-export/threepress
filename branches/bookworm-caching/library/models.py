@@ -23,7 +23,7 @@ from bookworm.library.epub.constants import NAMESPACES as NS
 from bookworm.library.epub.toc import NavPoint, TOC
 from bookworm.search import epubindexer
 
-import bookworm.library.epub.util as util
+import bookworm.library.epub.toc as util
 
 log = logging.getLogger('library.models')
 
